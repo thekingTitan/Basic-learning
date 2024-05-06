@@ -164,3 +164,6 @@ class Program
         }
     }
 }
+
+// I showed creativity by adding to my program codes that ask for the user emotions and also displaying 
+//it alongside the output.
