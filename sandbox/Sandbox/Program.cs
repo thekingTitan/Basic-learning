@@ -1,181 +1,275 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 
-abstract class MindfulnessActivity
+// Base class for all goals
+public abstract class Goal
 {
-    protected string Name { get; set; }
-    protected string Description { get; set; }
+    protected string name;
+    protected int points;
+    protected string description;
 
-    public MindfulnessActivity(string name, string description)
+    public Goal(string name, int points, string description)
     {
-        Name = name;
-        Description = description;
+        this.name = name;
+        this.points = points;
+        this.description = description;
     }
 
-    public void Start(int duration)
-    {
-        Console.WriteLine($"Starting {Name} activity:");
-        Console.WriteLine(Description);
-        Pause(3);
-        Perform(duration);
-        Console.WriteLine($"Good job! You completed the {Name} activity for {duration} seconds.");
-    }
+    public abstract void RecordEvent();
 
-    protected void Pause(int seconds)
-    {
-        for (int i = seconds; i > 0; i--)
-        {
-            Console.WriteLine($"Pausing for {i} seconds...");
-            Thread.Sleep(1000);
-        }
-    }
-
-    protected abstract void Perform(int duration);
+    public string Name { get { return name; } }
+    public int Points { get { return points; } }
+    public string Description { get { return description; } }
 }
 
-class BreathingActivity : MindfulnessActivity
+// Simple goal that can be marked complete
+public class SimpleGoal : Goal
 {
-    public BreathingActivity() : base("Breathing", "This activity will help you relax by walking you through breathing in and out slowly. Clear your mind and focus on your breathing.")
-    {
-    }
+    public SimpleGoal(string name, int points, string description) 
+        : base(name, points, description) { }
 
-    protected override void Perform(int duration)
+    public override void RecordEvent()
     {
-        while (duration > 0)
-        {
-            Console.WriteLine("Breathe in...");
-            Pause(3);
-            Console.WriteLine("Breathe out...");
-            Pause(3);
-            duration -= 6;
-        }
+        Console.WriteLine($"Completed {name} and earned {points} points!");
     }
 }
 
-class ReflectionActivity : MindfulnessActivity
+// Eternal goal that is never complete
+public class EternalGoal : Goal
 {
-    private static readonly string[] Prompts = {
-        "Think of a time when you stood up for someone else.",
-        "Think of a time when you did something really difficult.",
-        "Think of a time when you helped someone in need.",
-        "Think of a time when you did something truly selfless."
-    };
+    public EternalGoal(string name, int points, string description) 
+        : base(name, points, description) { }
 
-    private static readonly string[] Questions = {
-        "Why was this experience meaningful to you?",
-        "Have you ever done anything like this before?",
-        "How did you get started?",
-        "How did you feel when it was complete?",
-        "What made this time different than other times when you were not as successful?",
-        "What is your favorite thing about this experience?",
-        "What could you learn from this experience that applies to other situations?",
-        "What did you learn about yourself through this experience?",
-        "How can you keep this experience in mind in the future?"
-    };
-
-    public ReflectionActivity() : base("Reflection", "This activity will help you reflect on times in your life when you have shown strength and resilience. This will help you recognize the power you have and how you can use it in other aspects of your life.")
+    public override void RecordEvent()
     {
+        Console.WriteLine($"Recorded {name} and earned {points} points!");
+    }
+}
+
+// Checklist goal that must be accomplished a certain number of times
+public class ChecklistGoal : Goal
+{
+    private int targetCount;
+    private int currentCount;
+
+    public ChecklistGoal(string name, int points, string description, int targetCount) 
+        : base(name, points, description)
+    {
+        this.targetCount = targetCount;
+        this.currentCount = 0;
     }
 
-    protected override void Perform(int duration)
+    public override void RecordEvent()
     {
-        while (duration > 0)
+        currentCount++;
+        if (currentCount == targetCount)
         {
-            string prompt = Prompts[new Random().Next(0, Prompts.Length)];
-            Console.WriteLine(prompt);
-            Pause(3);
-            foreach (string question in Questions)
+            Console.WriteLine($"Completed {name} and earned {points * targetCount} points!");
+        }
+        else
+        {
+            Console.WriteLine($"Recorded {name} and earned {points} points! ({currentCount}/{targetCount})");
+        }
+    }
+
+    public int CurrentCount { get { return currentCount; } }
+    public int TargetCount { get { return targetCount; } }
+}
+
+// Creative goal that requires user rating for creative effort
+public class CreativeGoal : Goal
+{
+    public CreativeGoal(string name, int points, string description)
+        : base(name, points, description) { }
+
+    public override void RecordEvent()
+    {
+        Console.WriteLine($"Completed creative goal: {name}");
+        Console.WriteLine("Please rate your creative effort from 1 to 10:");
+        int rating;
+        while (!int.TryParse(Console.ReadLine(), out rating) || rating < 1 || rating > 10)
+        {
+            Console.WriteLine("Invalid rating. Please enter a number between 1 and 10.");
+        }
+        int finalPoints = points + rating;
+        Console.WriteLine($"You rated your creativity as {rating}/10. Earned {finalPoints} points!");
+    }
+}
+
+// Program class to manage goals and user score
+public class EternalQuest
+{
+    private List<Goal> goals;
+    private int score;
+
+    public EternalQuest()
+    {
+        goals = new List<Goal>();
+        score = 0;
+    }
+
+    public void CreateGoal(string name, int points, string description, GoalType type)
+    {
+        Goal goal;
+        switch (type)
+        {
+            case GoalType.Simple:
+                goal = new SimpleGoal(name, points, description);
+                break;
+            case GoalType.Eternal:
+                goal = new EternalGoal(name, points, description);
+                break;
+            case GoalType.Checklist:
+                goal = new ChecklistGoal(name, points, description, 5); // default target count of 5
+                break;
+            case GoalType.Creative:
+                goal = new CreativeGoal(name, points, description);
+                break;
+            default:
+                Console.WriteLine("Invalid goal type");
+                return;
+        }
+        goals.Add(goal);
+    }
+
+    public void RecordEvent(string name)
+    {
+        Goal goal = goals.Find(g => g.Name == name);
+        if (goal != null)
+        {
+            goal.RecordEvent();
+            score += goal.Points;
+        }
+        else
+        {
+            Console.WriteLine("Goal not found");
+        }
+    }
+
+    public void DisplayGoals()
+    {
+        Console.WriteLine("Goals:");
+        foreach (Goal goal in goals)
+        {
+            if (goal is ChecklistGoal checklistGoal)
             {
-                Console.WriteLine(question);
-                Pause(5);
+                Console.WriteLine($"[{checklistGoal.CurrentCount}/{checklistGoal.TargetCount}] {goal.Name} ({goal.Points} points) - {goal.Description}");
             }
-            duration -= 30;
-        }
-    }
-}
-
-class ListingActivity : MindfulnessActivity
-{
-    private static readonly string[] Prompts = {
-        "Who are people that you appreciate?",
-        "What are personal strengths of yours?",
-        "Who are people that you have helped this week?",
-        "When have you felt the Holy Ghost this month?",
-        "Who are some of your personal heroes?"
-    };
-
-    public ListingActivity() : base("Listing", "This activity will help you reflect on the good things in your life by having you list as many things as you can in a certain area.")
-    {
-    }
-
-    protected override void Perform(int duration)
-    {
-        while (duration > 0)
-        {
-            string prompt = Prompts[new Random().Next(0, Prompts.Length)];
-            Console.WriteLine(prompt);
-            Pause(3);
-            Console.WriteLine("Begin listing...");
-            List<string> items = new List<string>();
-            while (true)
+            else
             {
-                Console.Write("Enter an item or 'done' to finish: ");
-                string item = Console.ReadLine();
-                if (item.ToLower() == "done")
-                    break;
-                items.Add(item);
+                Console.WriteLine($"[X] {goal.Name} ({goal.Points} points) - {goal.Description}");
             }
-            Console.WriteLine($"Number of items listed: {items.Count}");
-            duration -= items.Count * 5; // Subtract 5 seconds per item listed
         }
     }
+
+    public void DisplayScore()
+    {
+        Console.WriteLine($"Score: {score} points");
+    }
+
+    public enum GoalType { Simple, Eternal, Checklist, Creative }
 }
 
 class Program
 {
     static void Main(string[] args)
     {
-        while (true)
+        EternalQuest quest = new EternalQuest();
+        bool quit = false;
+
+        Console.WriteLine("Welcome to Eternal Quest!");
+
+        while (!quit)
         {
-            Console.WriteLine("Mindfulness App");
-            Console.WriteLine("1. Breathing Activity");
-            Console.WriteLine("2. Reflection Activity");
-            Console.WriteLine("3. Listing Activity");
-            Console.WriteLine("4. Exit");
-            Console.Write("Choose an activity or '4' to exit: ");
-            string choice = Console.ReadLine();
-            if (choice == "1")
+            Console.WriteLine("\nMenu Options:");
+            Console.WriteLine("1. Create New Goal");
+            Console.WriteLine("2. List Goals");
+            Console.WriteLine("3. Record Event");
+            Console.WriteLine("4. Save Goals");
+            Console.WriteLine("5. Load Goals");
+            Console.WriteLine("6. Quit");
+
+            Console.Write("Enter your choice: ");
+            int choice;
+            if (!int.TryParse(Console.ReadLine(), out choice))
             {
-                BreathingActivity activity = new BreathingActivity();
-                Console.Write("Enter the duration in seconds: ");
-                int duration = int.Parse(Console.ReadLine());
-                activity.Start(duration);
+                Console.WriteLine("Invalid choice. Please enter a number.");
+                continue;
             }
-            else if (choice == "2")
+
+            switch (choice)
             {
-                ReflectionActivity activity = new ReflectionActivity();
-                Console.Write("Enter the duration in seconds: ");
-                int duration = int.Parse(Console.ReadLine());
-                activity.Start(duration);
-            }
-            else if (choice == "3")
-            {
-                ListingActivity activity = new ListingActivity();
-                Console.Write("Enter the duration in seconds: ");
-                int duration = int.Parse(Console.ReadLine());
-                activity.Start(duration);
-            }
-            else if (choice == "4")
-            {
-                break;
-            }
-            else
-            {
-                Console.WriteLine("Invalid choice. Please choose again.");
+                case 1:
+                    CreateNewGoal(quest);
+                    break;
+                case 2:
+                    quest.DisplayGoals();
+                    break;
+                case 3:
+                    RecordEvent(quest);
+                    break;
+                case 4:
+                    Console.WriteLine("Saving goals...");
+                    // Add code to save goals
+                    break;
+                case 5:
+                    Console.WriteLine("Loading goals...");
+                    // Add code to load goals
+                    break;
+                case 6:
+                    quit = true;
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please enter a number between 1 and 6.");
+                    break;
             }
         }
     }
+
+    static void CreateNewGoal(EternalQuest quest)
+    {
+        Console.WriteLine("\nCreate New Goal:");
+        Console.WriteLine("Enter goal name:");
+        string name = Console.ReadLine();
+        Console.WriteLine("Enter points for completing the goal:");
+        int points = int.Parse(Console.ReadLine());
+        Console.WriteLine("Enter a description for the goal:");
+        string description = Console.ReadLine();
+        Console.WriteLine("Select goal type (simple, eternal, checklist, or creative):");
+        string typeInput = Console.ReadLine().ToLower();
+        EternalQuest.GoalType type;
+        switch (typeInput)
+        {
+            case "simple":
+                type = EternalQuest.GoalType.Simple;
+                break;
+            case "eternal":
+                type = EternalQuest.GoalType.Eternal;
+                break;
+            case "checklist":
+                type = EternalQuest.GoalType.Checklist;
+                break;
+            case "creative":
+                type = EternalQuest.GoalType.Creative;
+                break;
+            default:
+                Console.WriteLine("Invalid goal type. Creating as simple goal.");
+                type = EternalQuest.GoalType.Simple;
+                break;
+        }
+        quest.CreateGoal(name, points, description, type);
+        Console.WriteLine("Goal created successfully!");
+    }
+
+    static void RecordEvent(EternalQuest quest)
+    {
+        Console.WriteLine("\nRecord Event:");
+        Console.WriteLine("Enter the name of the goal you completed:");
+        string eventName = Console.ReadLine();
+        quest.RecordEvent(eventName);
+    }
 }
 
-// My countdown is how i showed creativity.... i decided to use another method of countdown//
+// creativity was shown
+// i had my program listing "creativity" among the options of (simple, eternal or checklist) and also asking the user to rate their craetivty.
+// the program the sum up the rating of the user along side with the point earn from doin the activity.
