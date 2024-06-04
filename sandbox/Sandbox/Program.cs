@@ -1,275 +1,177 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
-// Base class for all goals
-public abstract class Goal
+// Address Class
+public class Address
 {
-    protected string name;
-    protected int points;
-    protected string description;
+    private string street;
+    private string city;
+    private string state;
+    private string country;
 
-    public Goal(string name, int points, string description)
+    public Address(string street, string city, string state, string country)
+    {
+        this.street = street;
+        this.city = city;
+        this.state = state;
+        this.country = country;
+    }
+
+    public bool IsInUSA()
+    {
+        return country.ToLower() == "usa";
+    }
+
+    public override string ToString()
+    {
+        return $"{street}\n{city}, {state}\n{country}";
+    }
+}
+
+// Customer Class
+public class Customer
+{
+    private string name;
+    private Address address;
+
+    public Customer(string name, Address address)
     {
         this.name = name;
-        this.points = points;
-        this.description = description;
+        this.address = address;
     }
 
-    public abstract void RecordEvent();
+    public bool IsInUSA()
+    {
+        return address.IsInUSA();
+    }
 
-    public string Name { get { return name; } }
-    public int Points { get { return points; } }
-    public string Description { get { return description; } }
+    public string GetName()
+    {
+        return name;
+    }
+
+    public Address GetAddress()
+    {
+        return address;
+    }
 }
 
-// Simple goal that can be marked complete
-public class SimpleGoal : Goal
+// Product Class
+public class Product
 {
-    public SimpleGoal(string name, int points, string description) 
-        : base(name, points, description) { }
+    private string name;
+    private string productId;
+    private double price;
+    private int quantity;
 
-    public override void RecordEvent()
+    public Product(string name, string productId, double price, int quantity)
     {
-        Console.WriteLine($"Completed {name} and earned {points} points!");
+        this.name = name;
+        this.productId = productId;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
+    public double GetTotalCost()
+    {
+        return price * quantity;
+    }
+
+    public string GetName()
+    {
+        return name;
+    }
+
+    public string GetProductId()
+    {
+        return productId;
     }
 }
 
-// Eternal goal that is never complete
-public class EternalGoal : Goal
+// Order Class
+public class Order
 {
-    public EternalGoal(string name, int points, string description) 
-        : base(name, points, description) { }
+    private List<Product> products;
+    private Customer customer;
 
-    public override void RecordEvent()
+    public Order(Customer customer)
     {
-        Console.WriteLine($"Recorded {name} and earned {points} points!");
+        this.customer = customer;
+        products = new List<Product>();
+    }
+
+    public void AddProduct(Product product)
+    {
+        products.Add(product);
+    }
+
+    public double GetTotalCost()
+    {
+        double total = 0;
+        foreach (var product in products)
+        {
+            total += product.GetTotalCost();
+        }
+        total += customer.IsInUSA() ? 5 : 35;
+        return total;
+    }
+
+    public string GetPackingLabel()
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (var product in products)
+        {
+            sb.AppendLine($"{product.GetName()} ({product.GetProductId()})");
+        }
+        return sb.ToString();
+    }
+
+    public string GetShippingLabel()
+    {
+        return $"{customer.GetName()}\n{customer.GetAddress()}";
     }
 }
 
-// Checklist goal that must be accomplished a certain number of times
-public class ChecklistGoal : Goal
+// Main Program
+public class Program
 {
-    private int targetCount;
-    private int currentCount;
-
-    public ChecklistGoal(string name, int points, string description, int targetCount) 
-        : base(name, points, description)
+    public static void Main(string[] args)
     {
-        this.targetCount = targetCount;
-        this.currentCount = 0;
+        // Create addresses
+        var address1 = new Address("123 Main St", "Springfield", "IL", "USA");
+        var address2 = new Address("456 Elm St", "Toronto", "ON", "Canada");
+
+        // Create customers
+        var customer1 = new Customer("John Doe", address1);
+        var customer2 = new Customer("Jane Smith", address2);
+
+        // Create products
+        var product1 = new Product("Widget", "W123", 3.99, 4);
+        var product2 = new Product("Gadget", "G456", 5.99, 2);
+        var product3 = new Product("Thingamajig", "T789", 2.99, 5);
+
+        // Create orders
+        var order1 = new Order(customer1);
+        order1.AddProduct(product1);
+        order1.AddProduct(product2);
+
+        var order2 = new Order(customer2);
+        order2.AddProduct(product2);
+        order2.AddProduct(product3);
+
+        // Display order details
+        DisplayOrderDetails(order1);
+        DisplayOrderDetails(order2);
     }
 
-    public override void RecordEvent()
+    private static void DisplayOrderDetails(Order order)
     {
-        currentCount++;
-        if (currentCount == targetCount)
-        {
-            Console.WriteLine($"Completed {name} and earned {points * targetCount} points!");
-        }
-        else
-        {
-            Console.WriteLine($"Recorded {name} and earned {points} points! ({currentCount}/{targetCount})");
-        }
-    }
-
-    public int CurrentCount { get { return currentCount; } }
-    public int TargetCount { get { return targetCount; } }
-}
-
-// Creative goal that requires user rating for creative effort
-public class CreativeGoal : Goal
-{
-    public CreativeGoal(string name, int points, string description)
-        : base(name, points, description) { }
-
-    public override void RecordEvent()
-    {
-        Console.WriteLine($"Completed creative goal: {name}");
-        Console.WriteLine("Please rate your creative effort from 1 to 10:");
-        int rating;
-        while (!int.TryParse(Console.ReadLine(), out rating) || rating < 1 || rating > 10)
-        {
-            Console.WriteLine("Invalid rating. Please enter a number between 1 and 10.");
-        }
-        int finalPoints = points + rating;
-        Console.WriteLine($"You rated your creativity as {rating}/10. Earned {finalPoints} points!");
+        Console.WriteLine("Packing Label:");
+        Console.WriteLine(order.GetPackingLabel());
+        Console.WriteLine("Shipping Label:");
+        Console.WriteLine(order.GetShippingLabel());
+        Console.WriteLine($"Total Cost: ${order.GetTotalCost():0.00}");
+        Console.WriteLine();
     }
 }
-
-// Program class to manage goals and user score
-public class EternalQuest
-{
-    private List<Goal> goals;
-    private int score;
-
-    public EternalQuest()
-    {
-        goals = new List<Goal>();
-        score = 0;
-    }
-
-    public void CreateGoal(string name, int points, string description, GoalType type)
-    {
-        Goal goal;
-        switch (type)
-        {
-            case GoalType.Simple:
-                goal = new SimpleGoal(name, points, description);
-                break;
-            case GoalType.Eternal:
-                goal = new EternalGoal(name, points, description);
-                break;
-            case GoalType.Checklist:
-                goal = new ChecklistGoal(name, points, description, 5); // default target count of 5
-                break;
-            case GoalType.Creative:
-                goal = new CreativeGoal(name, points, description);
-                break;
-            default:
-                Console.WriteLine("Invalid goal type");
-                return;
-        }
-        goals.Add(goal);
-    }
-
-    public void RecordEvent(string name)
-    {
-        Goal goal = goals.Find(g => g.Name == name);
-        if (goal != null)
-        {
-            goal.RecordEvent();
-            score += goal.Points;
-        }
-        else
-        {
-            Console.WriteLine("Goal not found");
-        }
-    }
-
-    public void DisplayGoals()
-    {
-        Console.WriteLine("Goals:");
-        foreach (Goal goal in goals)
-        {
-            if (goal is ChecklistGoal checklistGoal)
-            {
-                Console.WriteLine($"[{checklistGoal.CurrentCount}/{checklistGoal.TargetCount}] {goal.Name} ({goal.Points} points) - {goal.Description}");
-            }
-            else
-            {
-                Console.WriteLine($"[X] {goal.Name} ({goal.Points} points) - {goal.Description}");
-            }
-        }
-    }
-
-    public void DisplayScore()
-    {
-        Console.WriteLine($"Score: {score} points");
-    }
-
-    public enum GoalType { Simple, Eternal, Checklist, Creative }
-}
-
-class Program
-{
-    static void Main(string[] args)
-    {
-        EternalQuest quest = new EternalQuest();
-        bool quit = false;
-
-        Console.WriteLine("Welcome to Eternal Quest!");
-
-        while (!quit)
-        {
-            Console.WriteLine("\nMenu Options:");
-            Console.WriteLine("1. Create New Goal");
-            Console.WriteLine("2. List Goals");
-            Console.WriteLine("3. Record Event");
-            Console.WriteLine("4. Save Goals");
-            Console.WriteLine("5. Load Goals");
-            Console.WriteLine("6. Quit");
-
-            Console.Write("Enter your choice: ");
-            int choice;
-            if (!int.TryParse(Console.ReadLine(), out choice))
-            {
-                Console.WriteLine("Invalid choice. Please enter a number.");
-                continue;
-            }
-
-            switch (choice)
-            {
-                case 1:
-                    CreateNewGoal(quest);
-                    break;
-                case 2:
-                    quest.DisplayGoals();
-                    break;
-                case 3:
-                    RecordEvent(quest);
-                    break;
-                case 4:
-                    Console.WriteLine("Saving goals...");
-                    // Add code to save goals
-                    break;
-                case 5:
-                    Console.WriteLine("Loading goals...");
-                    // Add code to load goals
-                    break;
-                case 6:
-                    quit = true;
-                    break;
-                default:
-                    Console.WriteLine("Invalid choice. Please enter a number between 1 and 6.");
-                    break;
-            }
-        }
-    }
-
-    static void CreateNewGoal(EternalQuest quest)
-    {
-        Console.WriteLine("\nCreate New Goal:");
-        Console.WriteLine("Enter goal name:");
-        string name = Console.ReadLine();
-        Console.WriteLine("Enter points for completing the goal:");
-        int points = int.Parse(Console.ReadLine());
-        Console.WriteLine("Enter a description for the goal:");
-        string description = Console.ReadLine();
-        Console.WriteLine("Select goal type (simple, eternal, checklist, or creative):");
-        string typeInput = Console.ReadLine().ToLower();
-        EternalQuest.GoalType type;
-        switch (typeInput)
-        {
-            case "simple":
-                type = EternalQuest.GoalType.Simple;
-                break;
-            case "eternal":
-                type = EternalQuest.GoalType.Eternal;
-                break;
-            case "checklist":
-                type = EternalQuest.GoalType.Checklist;
-                break;
-            case "creative":
-                type = EternalQuest.GoalType.Creative;
-                break;
-            default:
-                Console.WriteLine("Invalid goal type. Creating as simple goal.");
-                type = EternalQuest.GoalType.Simple;
-                break;
-        }
-        quest.CreateGoal(name, points, description, type);
-        Console.WriteLine("Goal created successfully!");
-    }
-
-    static void RecordEvent(EternalQuest quest)
-    {
-        Console.WriteLine("\nRecord Event:");
-        Console.WriteLine("Enter the name of the goal you completed:");
-        string eventName = Console.ReadLine();
-        quest.RecordEvent(eventName);
-    }
-}
-
-// creativity was shown
-// i had my program listing "creativity" among the options of (simple, eternal or checklist) and also asking the user to rate their craetivty.
-// the program the sum up the rating of the user along side with the point earn from doin the activity.
